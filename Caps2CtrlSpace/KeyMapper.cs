@@ -15,9 +15,13 @@ namespace Caps2CtrlSpace
 
         private const int WM_KEYDOWN = 0x0100;
 
+        private const int WM_KEYUP = 0x0101;
+
         private static LowLevelKeyboardProc _proc = HookCallback;
 
         private static IntPtr _hookID = IntPtr.Zero;
+
+        private static int keyTimer = 10;
 
         public void SetupHook()
         {
@@ -54,16 +58,36 @@ namespace Caps2CtrlSpace
         private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
         {
 
-            if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
+            if (nCode >= 0 && wParam == (IntPtr)WM_KEYUP)
             {
-
                 int vkCode = Marshal.ReadInt32(lParam);
                 if ((Keys)vkCode == Keys.Capital)
                 {
-                    SendKeys.Send("^ "); //将CapsLock转换为Ctrl+Space
-                    return (IntPtr)1;
+                    
+                    if (keyTimer != 0)
+                    {
+                        SendKeys.Send("^ "); //将CapsLock转换为Ctrl+Space
+                        keyTimer = 10;
+                        return (IntPtr)1;
+                    }
+                    else
+                    {
+                        keyTimer = 10;
+                        return CallNextHookEx(_hookID, nCode, wParam, lParam);
+                    }
                 }
-
+            }
+            else if(nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN){
+                int vkCode = Marshal.ReadInt32(lParam);
+                if ((Keys)vkCode == Keys.Capital)
+                {
+                    if(keyTimer != 0)
+                    {
+                        keyTimer--;
+                        System.Console.WriteLine(keyTimer);
+                        return (IntPtr)1;
+                    }
+                }
             }
 
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
